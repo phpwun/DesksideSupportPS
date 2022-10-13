@@ -23,8 +23,8 @@
     #Installs Google Chrome
         function GoogleChrome{
             #Chrome (Will need to be swapped out when they stop serving this version link)
-                $chromeInstalled = (Get-Item (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe').'(Default)').VersionInfo
-                if ($null -eq $chromeInstalled.FileName ) {
+            $Chrome = "C:\Program Files\Google\Chrome\Application\chrome.exe"
+                if (Test-Path $Chrome) {
                         Write-Host "Installing Chrome."
                             Start-Sleep 1
                         $LocalTempDir = $env:TEMP; $ChromeInstaller = "ChromeInstaller.exe"; (new-object System.Net.WebClient).DownloadFile('http://dl.google.com/chrome/install/375.126/chrome_installer.exe', "$LocalTempDir\$ChromeInstaller"); & "$LocalTempDir\$ChromeInstaller" /silent /install; $Process2Monitor =  "ChromeInstaller"; Do { $ProcessesFound = Get-Process | Where-Object{$Process2Monitor -contains $_.Name} | Select-Object -ExpandProperty Name; If ($ProcessesFound) { "Still running: $($ProcessesFound -join ', ')" | Write-Host; Start-Sleep -Seconds 2 } else { Remove-Item "$LocalTempDir\$ChromeInstaller" -ErrorAction SilentlyContinue -Verbose } } Until (!$ProcessesFound)
@@ -109,7 +109,7 @@
                 function WinUpdateOne {
                     Write-Host "Attempting WinUpdatePSModule."
                         Start-Sleep 2
-                    Install-Module -Name PSWindowsUpdate -Force -AcceptLicense
+                    Install-Module -Name PSWindowsUpdate -Force
                         Write-Host "Installing WinUpdatePSModule."
                             Start-Sleep 2
                 }
@@ -322,8 +322,6 @@
             '5' {
                     CheckListMain "Main" "Office",
                     "Sentinel Agent",
-                    "Teams",
-                    "Adobe",
                     "Office@Hand",
                     "Citrix",
                     "Forticlient",
@@ -331,7 +329,8 @@
                     "Chrome"
 
                     CheckListMain "Sub" "$env:WINDIR\LTSvc\",
-                    "$env:APPDATA\Microsoft\Teams\"
+                    "$env:APPDATA\Microsoft\Teams\",
+                    "C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"
 
                     CheckListMain "SubTwo" $true
                 }
