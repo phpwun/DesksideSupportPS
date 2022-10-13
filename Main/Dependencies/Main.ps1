@@ -1,0 +1,289 @@
+#DesksideSupportPS
+    #10/12/22
+    #HA Deskside Support
+    #Bruh
+
+#Global Variables
+    #Identifies if the device is #64 Bit or #32 Bit
+    $Architecture = Get-WmiObject -Class Win32_OperatingSystem | Select-Object OSArchitecture
+
+#Global Functions
+    #Accepts file input
+      function AcceptFile($type, $where) {
+        Add-Type -AssemblyName System.Windows.Forms
+        $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{
+        InitialDirectory = [Environment]::GetFolderPath($where)
+        Filter = $type
+        }
+    $null = $FileBrowser.ShowDialog()
+    return $FileBrowser.FileName
+    }
+
+#Component Functions
+    #Installs Google Chrome
+        function GoogleChrome{
+            #Chrome (Will need to be swapped out when they stop serving this version link)
+                $chromeInstalled = (Get-Item (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe').'(Default)').VersionInfo
+                if ($null -eq $chromeInstalled.FileName ) {
+                        Write-Host "Installing Chrome."
+                            Start-Sleep 1
+                        $LocalTempDir = $env:TEMP; $ChromeInstaller = "ChromeInstaller.exe"; (new-object System.Net.WebClient).DownloadFile('http://dl.google.com/chrome/install/375.126/chrome_installer.exe', "$LocalTempDir\$ChromeInstaller"); & "$LocalTempDir\$ChromeInstaller" /silent /install; $Process2Monitor =  "ChromeInstaller"; Do { $ProcessesFound = Get-Process | Where-Object{$Process2Monitor -contains $_.Name} | Select-Object -ExpandProperty Name; If ($ProcessesFound) { "Still running: $($ProcessesFound -join ', ')" | Write-Host; Start-Sleep -Seconds 2 } else { Remove-Item "$LocalTempDir\$ChromeInstaller" -ErrorAction SilentlyContinue -Verbose } } Until (!$ProcessesFound)
+                        Write-Output "Finished Chrome Intallation."
+                            Start-Sleep 1
+                else {
+                Write-Host "Chrome is already installed."
+                }
+            }
+        }
+
+    #Installs / Initiates Dell Command Update
+        function DellCommandUpdate($SubFunction, $Bypass = $false) {
+            if ($SubFunction -eq "Prepare") {
+            #Downloads and Installs Dell Command Update
+                function DCUOne {
+                    #- Install DCU before running
+                        Copy-Item -Path ".\DCU.exe" -Destination "C:\temp"
+                            Write-Host "Attempting DCU Install."
+                                Start-Sleep 1
+                        Start-Process -Wait -FilePath "C:\temp\DCU.exe" -ArgumentList "/P" -PassThru
+                            Write-Host "Finished Installing DCU."
+                                Start-Sleep 1
+                }
+                DCUOne
+            } elseif ($SubFunction -eq "Start") {
+            #Locates and initiates Dell Command Update
+                function DCUTwo ($OVRDell) {
+                    #Find DCU Architechture
+                        If ($Architecture.OSArchitecture -eq "32-bit" -Or $OVRDell -eq "true") {
+                                $File = Get-ChildItem -Path $env:ProgramFiles -Filter "dcu-cli.exe" -ErrorAction SilentlyContinue -Recurse
+                            } else {
+                                $File = Get-ChildItem -Path ${env:ProgramFiles(x86)} -Filter "dcu-cli.exe" -ErrorAction SilentlyContinue -Recurse
+                            }
+                    #Initiate the Update
+                        Write-Host $File.FullName
+                            Write-Host "Attempting DCU Launch"
+                                Start-Sleep 1
+                                Start-Sleep 1
+                            $a=$File.FullName; & $a /configure silent '-autoSuspendBitLocker=enable -userConsent=disable'; & $a /scan -outputLog='C:\dell\logs\scan.log'; & $a /applyUpdates -outputLog='C:\dell\logs\applyUpdates.log'
+                                Write-Host "DCU Finished."
+                                    Start-Sleep 1
+                    }
+                    DCUTwo $Bypass
+                }
+        }
+
+    #Initiates Bitlocker Drive Encryption
+        function Bitlocker($SubFunction){
+            if ($SubFunction -eq "Prepare") {
+            #Removes an old bitlocker file to allow the main function to work
+                function BitlockerOne{
+                    $ReAgent = "C:\Windows\System32\Recovery\ReAgent.xml"
+                    if (Test-Path $ReAgent) {
+                        Remove-Item $ReAgent -Force -Confirm:$false
+                            Write-host "$ReAgent has been deleted"
+                                Start-Sleep 1
+                    }
+                    else {
+                        Write-host "$ReAgent doesn't exist, it will be skipped."
+                            Start-Sleep 1
+                    }
+                }
+                BitlockerOne
+            } elseif ($SubFunction -eq "Start") {
+            #Initiates the Bitlocker Encryption of the Device
+                function BitlockerTwo{
+                    Write-Host "Attempting Bitlocker2, this will prompt you for a pin "4357""
+                        Start-Sleep 1
+                    Enable-Bitlocker -MountPoint c: -UsedSpaceOnly -SkipHardwareTest -RecoveryPasswordProtector
+                        Write-Host "Bitlocker2 Finished."
+                            Start-Sleep 1
+                }
+                BitlockerTwo
+            }
+        }
+
+    #Installs WindowsUpdate for PS and Initiates Windows Update
+        function WinUpdate($SubFunction){
+            if ($SubFunction -eq "Prepare") {
+            #Windows Update Module Install
+                function WinUpdateOne {
+                    Write-Host "Attempting WinUpdatePSModule."
+                        Start-Sleep 2
+                    Install-Module -Name PSWindowsUpdate -Force -AcceptLicense
+                        Write-Host "Installing WinUpdatePSModule."
+                            Start-Sleep 2
+                }
+                WinUpdateOne
+            } elseif ($SubFunction -eq "Install") {
+            #Begins the Actual Install of the Updates
+                function WinUpdateTwo {
+                    #Initiates Package and Checks for Updates
+                        Get-Package -Name PSWindowsUpdate
+                        Get-WindowsUpdate
+                            Write-Host "Starting WinUpdate."
+                                Start-Sleep 2
+                    #I dont remeber why this flag is here, but the rest just starts the update
+                        Add-WUServiceManager -ServiceID "7971f918-a847-4430-9279-4a52d1efe18d" -AddServiceFlag 7
+                        Get-WUlist -MicrosoftUpdate
+                        Install-WindowsUpdate -MicrosoftUpdate -AcceptAll -IgnoreReboot
+                            Write-Host "Finishing WinUpdate."
+                                Start-Sleep 2
+                }
+                WinUpdateTwo
+            }
+        }
+
+    #Initiates Device Rename and Domain Addition
+        function DomainAddition ($Creds) {
+            #Adding the Renamed Device to the Domain
+                Write-Host "Attempting Domain Add."
+                    Start-Sleep 2
+                $SerialName = (Get-WmiObject -class win32_bios).SerialNumber
+                if ($env:computername -eq $SerialName) {
+                    Write-Host "Device is Already: $SerialName"
+                } else {
+                    Write-Host "Old: "
+                        Write-Host $SerialName
+                        Write-Host $env:computername
+                            Rename-Computer $SerialName
+                    Write-Host "New: "
+                        Write-Host $SerialName
+                        Write-Host $env:computername
+                    Add-Computer -DomainName "cho.ha.local" -Credential $Creds -Force -Options JoinWithNewName,accountcreate
+                        Write-Host "Added to Domain."
+                            Start-Sleep 2
+                }
+            }
+
+    #Installs the Automate Agent
+        function AutomateAgent{
+            Write-Host "Attempting Automate Install."
+            Copy-Item -Path ".\DCU.exe" -Destination "C:\temp"
+                Start-Sleep 2
+            Start-Process -Wait -FilePath "C:\temp\Agent.msi" -ArgumentList "/P" -PassThru
+                Write-Host "Agent Installer Finished."
+                    Start-Sleep 2
+    }
+
+#Core Functions
+    #Sweeps through all Windows Users and Clear's Non-Esentiall Ones
+        function RoutineClearMain {
+            $ErrorActionPreference='silentlycontinue'
+            $path = 'C:\Users'
+            $excluded = 'haitadmin','Public','Onward','Administrator'
+                Get-ChildItem $path -Exclude $excluded -Include *.* -Recurse -Force | ForEach-Object  { $_.Delete()}
+                Get-ChildItem $path -Exclude $excluded -Force | ForEach-Object   { $_.Delete()}
+                Get-ChildItem $path
+            Read-Host -Prompt "Done."
+        }
+
+    #Sets things up post re-imaging
+        function PostImageMain($SubFunction){
+        $SubFunction = Read-Host "Prepare [Pre-Restart] (1) or Start [Post-Restart] (2)"
+            if ($SubFunction -eq "1") {
+                function PostImageOne {
+                    GoogleChrome
+                    DellCommandUpdate "Start" $true
+                    Bitlocker "Prepare"
+                    WinUpdate "Prepare"
+                        WinUpdate "Start"
+                    DomainAddition $Credential
+                }
+                PostImageOne
+            } elsesif ($SubFunction -eq "2") { #Post-Restart
+                function PostImageTwo {
+                    DomainAddition $Credential
+                    Bitlocker "Start"
+                    AutomateAgent
+                }
+                PostImageTwo
+            }
+
+    }
+
+    #Assigns a csv list of service tags to the HA Laptops OU (Needs to be changed to be a modular OU)
+        function ADOUChangeMain{
+            $Where = Read-Host "Please Enter OU Path: (HA, HAI, HH, HHCS, HHO)"
+            $What = Read-Host "Please Enter Device List Type: (Laptops, Desktops)"
+            $filety = 'Comma Seperated Values (*.csv)|*.csv'; $location = 'Desktop'; $File = AcceptFile $filety $location
+            $laptops = Get-Content $File
+                    foreach ($laptop in $laptops) {
+                        $obj = Get-ADComputer $laptop
+                        Get-ADComputer $obj | Move-ADObject -TargetPath "OU=$What,OU=$Where,OU=Heartland Alliance,OU=Systems,DC=cho,DC=ha,DC=local" -Verbose
+                    }
+        }
+
+    #Sets up new devices out of box
+        function NewDeviceMain {
+            $SubFunction = Read-Host "Prepare [Pre-Restart] (1) or Start [Post-Restart] (2)"
+            if ($SubFunction -eq "1") {
+                function NewDeviceOne {
+                    DellCommandUpdate "Prepare"
+                    WinUpdate "Prepare"
+                }
+                NewDeviceOne
+            } elsesif ($SubFunction -eq "2") { #Post-Restart
+                function NewDeviceTwo {
+                    WinUpdate "Start"
+                    DellCommandUpdate "Start"
+                      Start-Sleep 2
+                    Restart-Computer -Wait
+                }
+                NewDeviceTwo
+            }
+        }
+
+#Main Menu Loop
+    function Show-Menu {
+        Write-Host "
+        Deskside Support Options:
+
+        1:
+            Dirty Devices
+                (Clears Non-Admin Users.)
+
+        2:
+            Post-Imaged Devices
+                (Bitlocker and Agent Install, After Reboot)
+
+        3:
+            Mover of Devices
+                (Move AD Users in an Excel Doc)
+
+        4:
+            New Devices
+                (Out of Box Configuration)
+
+        E:
+        Exit Script."
+    }
+
+    Write-Host "Pre-Requsite install. Say Yes to All"
+    WinUpdateOne
+    Start-Sleep 2
+    DomainAddition
+
+    do {
+        Show-Menu
+        $UserInput = Read-Host
+        switch ($UserInput)
+        {
+            '1' {
+                    RoutineClearMain
+                }
+            '2' {
+                    PostImageMain
+                }
+            '3' {
+                    ADOUChangeMain
+                }
+            '4' {
+                    NewDeviceMain
+                }
+            'e' {
+                    return
+                }
+        }
+        pause
+    }
+    until ($input -eq 'e')
