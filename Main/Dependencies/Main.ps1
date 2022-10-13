@@ -311,7 +311,7 @@
                     RoutineClearMain
                 }
             '2' {
-                    PostImageMain
+                    DellCommandUpdate "Start" $true
                 }
             '3' {
                     ADOUChangeMain
