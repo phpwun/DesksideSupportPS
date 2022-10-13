@@ -233,14 +233,49 @@
             }
         }
 
+        function CheckListMain($SubFunction, $listorvariable) {
+            if ($SubFunction -eq "Main") {
+                foreach ($software in $listorvariable)
+                {
+                    $installed = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object { $_.DisplayName -Match $software }) -ne $null
+                    If(-Not $installed) {
+                        Write-Host "'$software' NOT is installed."
+                    }else {
+                        Write-Host "'$software' is installed."
+                    }
+                }
+            } elseif ($SubFunction -eq "Sub") {
+                foreach ($Item in $listorvariable)
+                {
+                    If (Test-Path $Item) {
+                        Write-Output "'$Item' is installed."
+                    } Else {
+                        Write-Output "'$Item' NOT is installed."
+                    }
+                }
+            } elseif ($SubFunction -eq "SubTwo"){
+                function finddellarch($OVRDell = $false){
+                    $Architecture = Get-WmiObject -Class Win32_OperatingSystem | Select-Object OSArchitecture
+                    If ($Architecture.OSArchitecture -eq "32-bit" -Or $OVRDell -eq "true") {
+                        $File = Get-ChildItem -Path $env:ProgramFiles -Filter "dcu-cli.exe" -ErrorAction SilentlyContinue -Recurse
+                            Write-Host $File.FullName " is installed."
+                    } else {
+                        $File = Get-ChildItem -Path ${env:ProgramFiles(x86)} -Filter "dcu-cli.exe" -ErrorAction SilentlyContinue -Recurse
+                            Write-Host $File.FullName " is installed."
+                    }
+                }
+                finddellarch($listorvariable)
+            }
+        }
+
 #Main Menu Loop
     function Show-Menu {
         Write-Host "
         Deskside Support Options:
 
         1:
-            Dirty Devices
-                (Clears Non-Admin Users.)
+            Cluttered Devices
+                (Clears Non-Admin Users, DiskCleanup, DeFrag)
 
         2:
             Post-Imaged Devices
@@ -248,20 +283,24 @@
 
         3:
             Mover of Devices
-                (Move AD Users in an Excel Doc)
+                (Move AD Users en mass)
 
         4:
             New Devices
                 (Out of Box Configuration)
 
+        5:
+            Checklist
+                (Run after a user has logged in and finished setting things up)
+
         E:
         Exit Script."
     }
 
-    Write-Host "Pre-Requsite install. Say Yes to All"
-    WinUpdateOne
-    Start-Sleep 2
-    DomainAddition
+    #Write-Host "Pre-Requsite install. Say Yes to All"
+    #WinUpdateOne
+    #Start-Sleep 2
+    #DomainAddition
 
     do {
         Show-Menu
@@ -279,6 +318,22 @@
                 }
             '4' {
                     NewDeviceMain
+                }
+            '5' {
+                    CheckListMain "Main" "Office",
+                    "Sentinel Agent",
+                    "Teams",
+                    "Adobe",
+                    "Office@Hand",
+                    "Citrix",
+                    "Forticlient",
+                    "DisplayLink",
+                    "Chrome"
+
+                    CheckListMain "Sub" "$env:WINDIR\LTSvc\",
+                    "$env:APPDATA\Microsoft\Teams\"
+
+                    CheckListMain "SubTwo" $true
                 }
             'e' {
                     return
