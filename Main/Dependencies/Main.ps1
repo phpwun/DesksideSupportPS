@@ -114,7 +114,7 @@
                             Start-Sleep 2
                 }
                 WinUpdateOne
-            } elseif ($SubFunction -eq "Install") {
+            } elseif ($SubFunction -eq "Start") {
             #Begins the Actual Install of the Updates
                 function WinUpdateTwo {
                     #Initiates Package and Checks for Updates
@@ -308,7 +308,7 @@
         switch ($UserInput)
         {
             '1' {
-                    RoutineClearMain
+                WinUpdate "Start"
                 }
             '2' {
                     PostImageMain
