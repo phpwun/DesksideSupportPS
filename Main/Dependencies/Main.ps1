@@ -190,7 +190,7 @@
                     DomainAddition $Credential
                 }
                 PostImageOne
-            } elsesif ($SubFunction -eq "2") { #Post-Restart
+            } elseif ($SubFunction -eq "2") { #Post-Restart
                 function PostImageTwo {
                     DomainAddition $Credential
                     Bitlocker "Start"
