@@ -23,8 +23,8 @@
     #Installs Google Chrome
         function GoogleChrome{
             #Chrome (Will need to be swapped out when they stop serving this version link)
-            $Chrome = "C:\Program Files\Google\Chrome\Application\chrome.exe"
-                if (Test-Path $Chrome) {
+            $Chrome = "C:\Program Files\Google\Chrome\Application\"
+                if (Test-Path -ne $Chrome) {
                         Write-Host "Installing Chrome."
                             Start-Sleep 1
                         $LocalTempDir = $env:TEMP; $ChromeInstaller = "ChromeInstaller.exe"; (new-object System.Net.WebClient).DownloadFile('http://dl.google.com/chrome/install/375.126/chrome_installer.exe', "$LocalTempDir\$ChromeInstaller"); & "$LocalTempDir\$ChromeInstaller" /silent /install; $Process2Monitor =  "ChromeInstaller"; Do { $ProcessesFound = Get-Process | Where-Object{$Process2Monitor -contains $_.Name} | Select-Object -ExpandProperty Name; If ($ProcessesFound) { "Still running: $($ProcessesFound -join ', ')" | Write-Host; Start-Sleep -Seconds 2 } else { Remove-Item "$LocalTempDir\$ChromeInstaller" -ErrorAction SilentlyContinue -Verbose } } Until (!$ProcessesFound)
