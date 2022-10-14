@@ -222,7 +222,7 @@
                     WinUpdate "Prepare"
                 }
                 NewDeviceOne
-            } elsesif ($SubFunction -eq "2") { #Post-Restart
+            } elseif ($SubFunction -eq "2") { #Post-Restart
                 function NewDeviceTwo {
                     WinUpdate "Start"
                     DellCommandUpdate "Start"
