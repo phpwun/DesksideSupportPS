@@ -279,7 +279,9 @@
 
         2:
             Post-Imaged Devices
-                (Bitlocker and Agent Install, After Reboot)
+                (Bitlocker and Agent Install, After Reboot
+                Automate > Scripts > AntiVirus
+                S1 Deploy New)
 
         3:
             Mover of Devices
@@ -287,7 +289,9 @@
 
         4:
             New Devices
-                (Out of Box Configuration)
+                (Out of Box Configuration,
+                Automate > Scripts > AntiVirus
+                S1 Deploy New)
 
         5:
             Checklist
