@@ -2,6 +2,7 @@
     #10/12/22
     #HA Deskside Support
     #Bruh
+        #Use the DCU finder function to look for teams agnostic of current user
 
 #Global Variables
     #Identifies if the device is #64 Bit or #32 Bit
@@ -158,9 +159,10 @@
     #Installs the Automate Agent
         function AutomateAgent{
             Write-Host "Attempting Automate Install."
-            Copy-Item -Path ".\DCU.exe" -Destination "C:\temp"
+            Copy-Item -Path ".\Agent.msi" -Destination "C:\temp"
                 Start-Sleep 2
-            Start-Process -Wait -FilePath "C:\temp\Agent.msi" -ArgumentList "/P" -PassThru
+            #Start-Process -Wait -FilePath "C:\temp\Agent.msi" -ArgumentList "/P" -PassThru
+            msiexec.exe /a "C:\temp\Agent.msi"  /passive
                 Write-Host "Agent Installer Finished."
                     Start-Sleep 2
     }
@@ -312,7 +314,7 @@
         switch ($UserInput)
         {
             '1' {
-                WinUpdate "Start"
+                    WinUpdate "Start"
                 }
             '2' {
                     PostImageMain
