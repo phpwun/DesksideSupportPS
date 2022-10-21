@@ -170,6 +170,16 @@
                     Start-Sleep 2
     }
 
+#Installs the Automate Agent
+    function S1Agent{
+        Copy-Item -Path ".\S1.exe" -Destination "C:\temp"
+        Write-Host "Attempting S1 Install."
+            Start-Sleep 1
+    Start-Process -Wait -FilePath "C:\temp\S1.exe" -ArgumentList "/passive" -PassThru
+        Write-Host "Finished Installing DCU."
+            Start-Sleep 1
+}
+
 #Core Functions
     #Sweeps through all Windows Users and Clear's Non-Esentiall Ones
         function RoutineClearMain {
@@ -321,12 +331,14 @@
                 }
             '2' {
                     PostImageMain
+                        S1Agent
                 }
             '3' {
                     ADOUChangeMain
                 }
             '4' {
                     NewDeviceMain
+                        S1Agent
                 }
             '5' {
                     CheckListMain "Main" "Office",
