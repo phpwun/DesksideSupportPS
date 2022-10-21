@@ -46,7 +46,7 @@
                         Copy-Item -Path ".\DCU.exe" -Destination "C:\temp"
                             Write-Host "Attempting DCU Install."
                                 Start-Sleep 1
-                        Start-Process -Wait -FilePath "C:\temp\DCU.exe" -ArgumentList "/P" -PassThru
+                        Start-Process -Wait -FilePath "C:\temp\DCU.exe" -ArgumentList "/passive" -PassThru
                             Write-Host "Finished Installing DCU."
                                 Start-Sleep 1
                 }
@@ -110,6 +110,7 @@
                 function WinUpdateOne {
                     Write-Host "Attempting WinUpdatePSModule."
                         Start-Sleep 2
+                    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
                     Install-Module -Name PSWindowsUpdate -Force
                         Write-Host "Installing WinUpdatePSModule."
                             Start-Sleep 2
@@ -125,7 +126,9 @@
                                 Start-Sleep 2
                     #I dont remeber why this flag is here, but the rest just starts the update
                         Add-WUServiceManager -ServiceID "7971f918-a847-4430-9279-4a52d1efe18d" -AddServiceFlag 7
-                        Get-WUlist -MicrosoftUpdate
+                        #Get-WUlist -MicrosoftUpdate
+                            Write-Host 'Initiating WinUpdate.'
+                                Start-Sleep 2
                         Install-WindowsUpdate -MicrosoftUpdate -AcceptAll -IgnoreReboot
                             Write-Host "Finishing WinUpdate."
                                 Start-Sleep 2
