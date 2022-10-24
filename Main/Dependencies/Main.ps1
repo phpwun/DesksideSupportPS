@@ -43,7 +43,7 @@
             #Downloads and Installs Dell Command Update
                 function DCUOne {
                     #- Install DCU before running
-                        Copy-Item -Path ".\DCU.exe" -Destination "C:\temp"
+                        Copy-Item -Path "C:\Users\haitadmin\Downloads\DesksideSupportPS-main\Main\Dependencies\DCU.exe" -Destination "C:\temp"
                             Write-Host "Attempting DCU Install."
                                 Start-Sleep 1
                         Start-Process -Wait -FilePath "C:\temp\DCU.exe" -ArgumentList "/passive" -PassThru
@@ -162,35 +162,35 @@
     #Installs the Automate Agent
         function AutomateAgent{
             Write-Host "Attempting Automate Install."
-            Copy-Item -Path ".\Agent.msi" -Destination "C:\temp"
+            Copy-Item -Path "C:\Users\haitadmin\Downloads\DesksideSupportPS-main\Main\Dependencies\Agent.msi" -Destination "C:\temp"
                 Start-Sleep 2
             #Start-Process -Wait -FilePath "C:\temp\Agent.msi" -ArgumentList "/P" -PassThru
             msiexec.exe /a "C:\temp\Agent.msi"  /passive
                 Write-Host "Agent Installer Finished."
                     Start-Sleep 2
+        }
+
+    #Installs the SentinalOne Agent
+        function S1Agent{
+            Copy-Item -Path "C:\Users\haitadmin\Downloads\DesksideSupportPS-main\Main\Dependencies\S1.exe" -Destination "C:\temp"
+            Write-Host "Attempting S1 Install."
+                Start-Sleep 1
+        Start-Process -Wait -FilePath "C:\temp\S1.exe" -ArgumentList "/passive" -PassThru
+            Write-Host "Finished Installing DCU."
+                Start-Sleep 1
     }
 
-#Installs the Automate Agent
-    function S1Agent{
-        Copy-Item -Path ".\S1.exe" -Destination "C:\temp"
-        Write-Host "Attempting S1 Install."
-            Start-Sleep 1
-    Start-Process -Wait -FilePath "C:\temp\S1.exe" -ArgumentList "/passive" -PassThru
-        Write-Host "Finished Installing DCU."
-            Start-Sleep 1
-}
-
-#Core Functions
-    #Sweeps through all Windows Users and Clear's Non-Esentiall Ones
-        function RoutineClearMain {
-            $ErrorActionPreference='silentlycontinue'
-            $path = 'C:\Users'
-            $excluded = 'haitadmin','Public','Onward','Administrator'
-                Get-ChildItem $path -Exclude $excluded -Include *.* -Recurse -Force | ForEach-Object  { $_.Delete()}
-                Get-ChildItem $path -Exclude $excluded -Force | ForEach-Object   { $_.Delete()}
-                Get-ChildItem $path
-            Read-Host -Prompt "Done."
-        }
+    #Core Functions
+        #Sweeps through all Windows Users and Clear's Non-Esentiall Ones
+            function RoutineClearMain {
+                $ErrorActionPreference='silentlycontinue'
+                $path = 'C:\Users'
+                $excluded = 'haitadmin','Public','Onward','Administrator'
+                    Get-ChildItem $path -Exclude $excluded -Include *.* -Recurse -Force | ForEach-Object  { $_.Delete()}
+                    Get-ChildItem $path -Exclude $excluded -Force | ForEach-Object   { $_.Delete()}
+                    Get-ChildItem $path
+                Read-Host -Prompt "Done."
+            }
 
     #Sets things up post re-imaging
         function PostImageMain($SubFunction){
