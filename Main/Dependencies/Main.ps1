@@ -328,7 +328,7 @@
         switch ($UserInput)
         {
             '1' {
-                    WinUpdate "Start"
+                    RoutineClearMain
                 }
             '2' {
                     PostImageMain
