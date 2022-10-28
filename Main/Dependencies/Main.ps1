@@ -171,15 +171,17 @@
                     Start-Sleep 2
         }
 
-    #Installs the SentinalOne Agent
+    Installs the SentinalOne Agent
         function S1Agent{
             Copy-Item -Path "C:\Users\haitadmin\Downloads\DesksideSupportPS-main\Main\Dependencies\S1.exe" -Destination "C:\temp"
+            Copy-Item -Path "C:\Users\haitadmin\Downloads\DesksideSupportPS-main\Main\Dependencies\S1.bat" -Destination "C:\temp"
             Write-Host "Attempting S1 Install."
                 Start-Sleep 1
-        Start-Process -Wait -FilePath "C:\temp\S1.exe" -ArgumentList "/passive" -PassThru
-            Write-Host "Finished Installing DCU."
-                Start-Sleep 1
-    }
+            & cmd.exe /c C:\temp\S1.bat
+            #Start-Process -Wait -FilePath "C:\temp\S1.exe" -ArgumentList "/passive" " -PassThru
+                Write-Host "Finished Installing DCU."
+                    Start-Sleep 1
+        }
 
     #Core Functions
         #Sweeps through all Windows Users and Clear's Non-Esentiall Ones
@@ -197,20 +199,27 @@
         function PostImageMain($SubFunction){
         $SubFunction = Read-Host "Prepare [Pre-Restart] (1) or Start [Post-Restart] (2)"
             if ($SubFunction -eq "1") {
-                function PostImageOne {
+                function PostImageOne { #Pre-Restart
                     GoogleChrome
                     DellCommandUpdate "Start" $true
                     Bitlocker "Prepare"
                     WinUpdate "Prepare"
                         WinUpdate "Start"
                     DomainAddition $Credential
+                    Write-Host "Restarting.."
+                        Start-Sleep 2
+                            Restart-Computer -Wait
                 }
                 PostImageOne
             } elseif ($SubFunction -eq "2") { #Post-Restart
                 function PostImageTwo {
                     DomainAddition $Credential
-                    Bitlocker "Start"
+                    #Bitlocker "Start" (needs more testing)
                     AutomateAgent
+                    Write-Host "Enable Bitlocker After Restart."
+                        Write-Host "Restarting.."
+                            Start-Sleep 2
+                                Restart-Computer -Wait
                 }
                 PostImageTwo
             }
@@ -231,19 +240,25 @@
 
     #Sets up new devices out of box
         function NewDeviceMain {
-            $SubFunction = Read-Host "Prepare [Pre-Restart] (1) or Start [Post-Restart] (2)"
+            $SubFunction = Read-Host "Depreciated, Only one Run Needed"#"Prepare [Pre-Restart] (1) or Start [Post-Restart] (2)"
             if ($SubFunction -eq "1") {
                 function NewDeviceOne {
                     DellCommandUpdate "Prepare"
+                        DellCommandUpdate "Start"
                     WinUpdate "Prepare"
+                        WinUpdate "Start"
+                      Start-Sleep 2
+                    S1Agent
+                        Restart-Computer -Wait
                 }
                 NewDeviceOne
             } elseif ($SubFunction -eq "2") { #Post-Restart
                 function NewDeviceTwo {
-                    WinUpdate "Start"
-                    DellCommandUpdate "Start"
-                      Start-Sleep 2
-                    Restart-Computer -Wait
+                    #WinUpdate "Start"
+                    #DellCommandUpdate "Start"
+                    #  Start-Sleep 2
+                    #S1Agent
+                    #Restart-Computer -Wait
                 }
                 NewDeviceTwo
             }
@@ -317,7 +332,6 @@
         Exit Script."
     }
 
-    #Write-Host "Pre-Requsite install. Say Yes to All"
     #WinUpdateOne
     #Start-Sleep 2
     #DomainAddition
@@ -332,14 +346,12 @@
                 }
             '2' {
                     PostImageMain
-                        S1Agent
                 }
             '3' {
                     ADOUChangeMain
                 }
             '4' {
                     NewDeviceMain
-                        S1Agent
                 }
             '5' {
                     CheckListMain "Main" "Office",
