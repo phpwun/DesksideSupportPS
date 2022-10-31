@@ -23,18 +23,17 @@
 #Component Functions
     #Installs Google Chrome
     function GoogleChrome{
-        Write-Host "Chrome"
-        $Chrome = "C:\Program Files\Google\Chrome\Application\"
-            if (Test-Path $Chrome) {
-                Write-Host "Chrome is already installed."
-            { else {
-                Write-Host "Installing Chrome."
-                    Start-Sleep 1
-            $LocalTempDir = $env:TEMP; $ChromeInstaller = "ChromeInstaller.exe"; (new-object System.Net.WebClient).DownloadFile('http://dl.google.com/chrome/install/375.126/chrome_installer.exe', "$LocalTempDir\$ChromeInstaller"); & "$LocalTempDir\$ChromeInstaller" /silent /install; $Process2Monitor =  "ChromeInstaller"; Do { $ProcessesFound = Get-Process | Where-Object{$Process2Monitor -contains $_.Name} | Select-Object -ExpandProperty Name; If ($ProcessesFound) { "Still running: $($ProcessesFound -join ', ')" | Write-Host; Start-Sleep -Seconds 2 } else { Remove-Item "$LocalTempDir\$ChromeInstaller" -ErrorAction SilentlyContinue -Verbose } } Until (!$ProcessesFound)
-                Write-Output "Finished Chrome Intallation."
-                    Start-Sleep 1
-                }
-            }
+        $FolderName = "C:\Program Files\Google\Chrome\Application\"
+        if (Test-Path $FolderName) {
+            Write-Host "Chrome is already installed."
+        }
+        else
+        {
+        Write-Host "Installing Chrome."
+            Start-Sleep 1
+        $LocalTempDir = $env:TEMP; $ChromeInstaller = "ChromeInstaller.exe"; (new-object System.Net.WebClient).DownloadFile('http://dl.google.com/chrome/install/375.126/chrome_installer.exe', "$LocalTempDir\$ChromeInstaller"); & "$LocalTempDir\$ChromeInstaller" /silent /install; $Process2Monitor =  "ChromeInstaller"; Do { $ProcessesFound = Get-Process | Where-Object{$Process2Monitor -contains $_.Name} | Select-Object -ExpandProperty Name; If ($ProcessesFound) { "Still running: $($ProcessesFound -join ', ')" | Write-Host; Start-Sleep -Seconds 2 } else { Remove-Item "$LocalTempDir\$ChromeInstaller" -ErrorAction SilentlyContinue -Verbose } } Until (!$ProcessesFound)
+            Write-Output "Finished Chrome Intallation."
+                Start-Sleep 1
         }
     }
 
@@ -66,7 +65,10 @@
                             Write-Host "Attempting DCU Launch"
                                 Start-Sleep 1
                                 Start-Sleep 1
-                            $a=$File.FullName; & $a /configure silent '-autoSuspendBitLocker=enable -userConsent=disable'; & $a /scan -outputLog='C:\dell\logs\scan.log'; & $a /applyUpdates -outputLog='C:\dell\logs\applyUpdates.log'
+                                    $a=$File.FullName
+                                    & $a /configure silent '-autoSuspendBitLocker=enable -userConsent=disable'
+                                    & $a /scan #-outputLog='C:\dell\logs\scan.log'
+                                    & $a /applyUpdates #-outputLog='C:\dell\logs\applyUpdates.log'
                                 Write-Host "DCU Finished."
                                     Start-Sleep 1
                     }
@@ -214,7 +216,7 @@
             } elseif ($SubFunction -eq "2") { #Post-Restart
                 function PostImageTwo {
                     DomainAddition $Credential
-                    #Bitlocker "Start" (needs more testing)
+                        #Bitlocker "Start" (needs more testing)
                     AutomateAgent
                     Write-Host "Enable Bitlocker After Restart."
                         Write-Host "Restarting.."
