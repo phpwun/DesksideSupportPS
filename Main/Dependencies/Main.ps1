@@ -173,7 +173,7 @@
                     Start-Sleep 2
         }
 
-    Installs the SentinalOne Agent
+    #Installs the SentinalOne Agent
         function S1Agent{
             Copy-Item -Path "C:\Users\haitadmin\Downloads\DesksideSupportPS-main\Main\Dependencies\S1.exe" -Destination "C:\temp"
             Copy-Item -Path "C:\Users\haitadmin\Downloads\DesksideSupportPS-main\Main\Dependencies\S1.bat" -Destination "C:\temp"
