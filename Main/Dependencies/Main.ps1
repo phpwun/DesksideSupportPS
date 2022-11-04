@@ -65,10 +65,10 @@
                             Write-Host "Attempting DCU Launch"
                                 Start-Sleep 1
                                 Start-Sleep 1
-                                    $a=$File.FullName
-                                    & $a /configure silent '-autoSuspendBitLocker=enable -userConsent=disable'
-                                    & $a /scan #-outputLog='C:\dell\logs\scan.log'
-                                    & $a /applyUpdates #-outputLog='C:\dell\logs\applyUpdates.log'
+                                    #$a=$File.FullName
+                                    & "C:\Program Files\Dell\CommandUpdate\dcu-cli.exe" /configure silent '-autoSuspendBitLocker=enable -userConsent=disable'
+                                    & "C:\Program Files\Dell\CommandUpdate\dcu-cli.exe" /scan -outputLog='C:\dell\logs\scan.log'
+                                    & "C:\Program Files\Dell\CommandUpdate\dcu-cli.exe" /applyUpdates -outputLog='C:\dell\logs\applyUpdates.log'
                                 Write-Host "DCU Finished."
                                     Start-Sleep 1
                     }
@@ -113,6 +113,7 @@
                 function WinUpdateOne {
                     Write-Host "Attempting WinUpdatePSModule."
                         Start-Sleep 2
+                    Install-PackageProvider -Name NuGet -Force
                     Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
                     Install-Module -Name PSWindowsUpdate -Force
                         Write-Host "Installing WinUpdatePSModule."
@@ -123,16 +124,18 @@
             #Begins the Actual Install of the Updates
                 function WinUpdateTwo {
                     #Initiates Package and Checks for Updates
-                        Get-Package -Name PSWindowsUpdate
-                        Get-WindowsUpdate
+                        Get-Package -Name PSWindowsUpdate -Force
+                        Get-WindowsUpdate -Force
                             Write-Host "Starting WinUpdate."
                                 Start-Sleep 2
                     #I dont remeber why this flag is here, but the rest just starts the update
-                        Add-WUServiceManager -ServiceID "7971f918-a847-4430-9279-4a52d1efe18d" -AddServiceFlag 7
+                        #Add-WUServiceManager -ServiceID "7971f918-a847-4430-9279-4a52d1efe18d" -AddServiceFlag 7
+                        Add-WUServiceManager -ServiceID 7971f918-a847-4430-9279-4a52d1efe18d -Confirm:$false
                         #Get-WUlist -MicrosoftUpdate
                             Write-Host 'Initiating WinUpdate.'
                                 Start-Sleep 2
-                        Install-WindowsUpdate -MicrosoftUpdate -AcceptAll -IgnoreReboot
+                    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+                    Install-WindowsUpdate -MicrosoftUpdate -Confirm:$False -Force -AcceptAll -IgnoreReboot
                             Write-Host "Finishing WinUpdate."
                                 Start-Sleep 2
                 }
@@ -210,18 +213,18 @@
                     DomainAddition $Credential
                     Write-Host "Restarting.."
                         Start-Sleep 2
-                            Restart-Computer -Wait
+                            Restart-Computer
                 }
                 PostImageOne
             } elseif ($SubFunction -eq "2") { #Post-Restart
                 function PostImageTwo {
                     DomainAddition $Credential
-                        #Bitlocker "Start" (needs more testing)
+                        Bitlocker "Start"
                     AutomateAgent
                     Write-Host "Enable Bitlocker After Restart."
                         Write-Host "Restarting.."
                             Start-Sleep 2
-                                Restart-Computer -Wait
+                                Restart-Computer
                 }
                 PostImageTwo
             }
@@ -242,31 +245,31 @@
 
     #Sets up new devices out of box
         function NewDeviceMain {
-            $SubFunction = Read-Host "Depreciated, Only one Run Needed"#"Prepare [Pre-Restart] (1) or Start [Post-Restart] (2)"
+            $SubFunction = Read-Host "Prepare [Pre-Restart] (1) or Start [Post-Restart] (2)" #"Depreciated, Only one Run Needed"
             if ($SubFunction -eq "1") {
                 function NewDeviceOne {
                     DellCommandUpdate "Prepare"
-                        DellCommandUpdate "Start"
+                        #DellCommandUpdate "Start"
                     WinUpdate "Prepare"
-                        WinUpdate "Start"
+                        #WinUpdate "Start"
                       Start-Sleep 2
                     S1Agent
-                        Restart-Computer -Wait
+                        Restart-Computer
                 }
                 NewDeviceOne
             } elseif ($SubFunction -eq "2") { #Post-Restart
                 function NewDeviceTwo {
-                    #WinUpdate "Start"
-                    #DellCommandUpdate "Start"
-                    #  Start-Sleep 2
-                    #S1Agent
-                    #Restart-Computer -Wait
+                    WinUpdate "Start"
+                    DellCommandUpdate "Start"
+                      Start-Sleep 2
+                    S1Agent
+                    Restart-Computer
                 }
                 NewDeviceTwo
             }
         }
 
-        function CheckListMain($SubFunction, $listorvariable) {
+        function ApplicationFinders($SubFunction, $listorvariable) {
             if ($SubFunction -eq "Main") {
                 foreach ($software in $listorvariable)
                 {
@@ -301,6 +304,19 @@
             }
         }
 
+        function CheckListHA {
+            ApplicationFinders "Main" "Office",
+                "Sentinel Agent",
+                "Office@Hand",
+                "Citrix",
+                "Forticlient",
+                "DisplayLink",
+                "Chrome"
+            ApplicationFinders "Sub" "$env:WINDIR\LTSvc\",
+                "$env:APPDATA\Microsoft\Teams\",
+                "C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"
+            ApplicationFinders "SubTwo" $true
+        }
 #Main Menu Loop
     function Show-Menu {
         Write-Host "
@@ -356,19 +372,7 @@
                     NewDeviceMain
                 }
             '5' {
-                    CheckListMain "Main" "Office",
-                    "Sentinel Agent",
-                    "Office@Hand",
-                    "Citrix",
-                    "Forticlient",
-                    "DisplayLink",
-                    "Chrome"
-
-                    CheckListMain "Sub" "$env:WINDIR\LTSvc\",
-                    "$env:APPDATA\Microsoft\Teams\",
-                    "C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"
-
-                    CheckListMain "SubTwo" $true
+                    CheckListHA
                 }
             'e' {
                     return
