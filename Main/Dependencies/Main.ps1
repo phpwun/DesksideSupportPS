@@ -98,7 +98,8 @@
                 function BitlockerTwo{
                     Write-Host "Attempting Bitlocker2, this will prompt you for a pin "4357""
                         Start-Sleep 1
-                    Enable-Bitlocker -MountPoint c: -UsedSpaceOnly -SkipHardwareTest -RecoveryPasswordProtector
+                        $Pin = ConvertTo-SecureString "4357" -AsPlainText -Force
+                            Enable-Bitlocker -MountPoint c: -Pin $Pin -UsedSpaceOnly -SkipHardwareTest -RecoveryPasswordProtector
                         Write-Host "Bitlocker2 Finished."
                             Start-Sleep 1
                 }
