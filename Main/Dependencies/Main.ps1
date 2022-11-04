@@ -126,7 +126,7 @@
                 function WinUpdateTwo {
                     #Initiates Package and Checks for Updates
                         Get-Package -Name PSWindowsUpdate -Force
-                        Get-WindowsUpdate -Force
+                        Get-WindowsUpdate -ForceInstall
                             Write-Host "Starting WinUpdate."
                                 Start-Sleep 2
                     #I dont remeber why this flag is here, but the rest just starts the update
@@ -136,7 +136,7 @@
                             Write-Host 'Initiating WinUpdate.'
                                 Start-Sleep 2
                     Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-                    Install-WindowsUpdate -MicrosoftUpdate -Confirm:$False -Force -AcceptAll -IgnoreReboot
+                    Install-WindowsUpdate -MicrosoftUpdate -Confirm:$False -ForceInstall -AcceptAll -IgnoreReboot
                             Write-Host "Finishing WinUpdate."
                                 Start-Sleep 2
                 }
