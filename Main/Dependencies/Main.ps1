@@ -46,7 +46,7 @@
                         Copy-Item -Path "C:\Users\haitadmin\Downloads\DesksideSupportPS-main\Main\Dependencies\DCU.exe" -Destination "C:\temp"
                             Write-Host "Attempting DCU Install."
                                 Start-Sleep 1
-                        Start-Process -Wait -FilePath "C:\temp\DCU.exe" -ArgumentList "/passive" -PassThru
+                        & "C:\temp\DCU.exe" /s
                             Write-Host "Finished Installing DCU."
                                 Start-Sleep 1
                 }
