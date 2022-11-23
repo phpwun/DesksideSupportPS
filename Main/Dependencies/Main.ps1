@@ -46,7 +46,7 @@
                         Copy-Item -Path "C:\Users\haitadmin\Downloads\DesksideSupportPS-main\Main\Dependencies\DCU.exe" -Destination "C:\temp"
                             Write-Host "Attempting DCU Install."
                                 Start-Sleep 1
-                        & "C:\temp\DCU.exe" /s
+                        & "C:\temp\DCU.exe"
                             Write-Host "Finished Installing DCU."
                                 Start-Sleep 1
                 }
