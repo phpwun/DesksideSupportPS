@@ -65,10 +65,10 @@
                             Write-Host "Attempting DCU Launch"
                                 Start-Sleep 1
                                 Start-Sleep 1
-                                    $a=$File.FullName
-                                    & $a /configure silent '-autoSuspendBitLocker=enable -userConsent=disable'
-                                    & $a /scan -outputLog='C:\dell\logs\scan.log'
-                                    & $a /applyUpdates -outputLog='C:\dell\logs\applyUpdates.log'
+                                    #$a=$File.FullName
+                                    & "C:\Program Files\Dell\CommandUpdate\dcu-cli.exe" /configure silent '-autoSuspendBitLocker=enable -userConsent=disable'
+                                    & "C:\Program Files\Dell\CommandUpdate\dcu-cli.exe" /scan -outputLog='C:\dell\logs\scan.log'
+                                    & "C:\Program Files\Dell\CommandUpdate\dcu-cli.exe" /applyUpdates -outputLog='C:\dell\logs\applyUpdates.log'
                                 Write-Host "DCU Finished."
                                     Start-Sleep 1
                     }
@@ -214,8 +214,8 @@
                     DomainAddition $Credential
                     Write-Host "Restarting.."
                         Start-Sleep 2
-                            Write-Host "RESTART AFTER DONE."
-                            #Restart-Computer
+                            Write-Host "Restart when done."
+                            Restart-Computer
                 }
                 PostImageOne
             } elseif ($SubFunction -eq "2") { #Post-Restart
@@ -226,8 +226,8 @@
                     Write-Host "Enable Bitlocker After Restart."
                         Write-Host "Restarting.."
                             Start-Sleep 2
-                                Write-Host "RESTART AFTER DONE."
-                                #Restart-Computer
+                                Write-Host "Restart when done."
+                                Restart-Computer
                 }
                 PostImageTwo
             }
@@ -257,7 +257,7 @@
                         #WinUpdate "Start"
                       Start-Sleep 2
                     S1Agent
-                        Write-Host "RESTART AFTER DONE."
+                        Write-Host "Restart when done."
                         #Restart-Computer
                 }
                 NewDeviceOne
@@ -267,7 +267,7 @@
                     DellCommandUpdate "Start"
                       Start-Sleep 2
                     S1Agent
-                    Write-Host "RESTART AFTER DONE."
+                    Write-Host "Restart when done."
                     #Restart-Computer
                 }
                 NewDeviceTwo
