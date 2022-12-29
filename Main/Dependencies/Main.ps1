@@ -208,6 +208,7 @@
             if ($SubFunction -eq "1") {
                 function PostImageOne { #Pre-Restart
                     GoogleChrome
+                    S1Agent
                     DellCommandUpdate "Start" $true
                     Bitlocker "Prepare"
                     WinUpdate "Prepare"
