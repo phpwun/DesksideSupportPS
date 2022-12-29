@@ -99,8 +99,9 @@
                     Write-Host "Attempting Bitlocker2, this will prompt you for a pin "4357""
                         Start-Sleep 1
                         $Pin = ConvertTo-SecureString "4357" -AsPlainText -Force
-                            Enable-Bitlocker -MountPoint c: -Pin $Pin -UsedSpaceOnly -SkipHardwareTest -RecoveryPasswordProtector
-                        Write-Host "Bitlocker2 Finished."
+                            Enable-BitLocker -MountPoint "C:" -UsedSpaceOnly -SkipHardwareTest -Pin $Pin -AdAccountOrGroupProtector
+                            Get-BitLockerVolume -MountPoint "C:"
+                            Write-Host "Bitlocker2 Finished."
                             Start-Sleep 1
                 }
                 BitlockerTwo
@@ -215,7 +216,7 @@
                     Write-Host "Restarting.."
                         Start-Sleep 2
                             Write-Host "Restart when done."
-                            Restart-Computer
+                            #Restart-Computer
                 }
                 PostImageOne
             } elseif ($SubFunction -eq "2") { #Post-Restart
@@ -227,7 +228,7 @@
                         Write-Host "Restarting.."
                             Start-Sleep 2
                                 Write-Host "Restart when done."
-                                Restart-Computer
+                                #Restart-Computer
                 }
                 PostImageTwo
             }
@@ -278,7 +279,7 @@
             if ($SubFunction -eq "Main") {
                 foreach ($software in $listorvariable)
                 {
-                    $installed = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object { $_.DisplayName -Match $software }) -ne $null
+                    $installed = $null -ne (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object { $_.DisplayName -Match $software })
                     If(-Not $installed) {
                         Write-Host "'$software' NOT is installed."
                     }else {
