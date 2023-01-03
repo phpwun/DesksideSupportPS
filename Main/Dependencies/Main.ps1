@@ -6,7 +6,10 @@
 
 #Global Variables
     #Identifies if the device is #64 Bit or #32 Bit
-    $Architecture = Get-WmiObject -Class Win32_OperatingSystem | Select-Object OSArchitecture
+        $Architecture = Get-WmiObject -Class Win32_OperatingSystem | Select-Object OSArchitecture
+
+    #Current Dir
+        $currentDirectory = $PSScriptRoot
 
 #Global Functions
     #Accepts file input
