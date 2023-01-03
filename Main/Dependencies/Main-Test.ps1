@@ -255,13 +255,10 @@
             if ($SubFunction -eq "1") {
                 function NewDeviceOne {
                     DellCommandUpdate "Prepare"
-                        #DellCommandUpdate "Start"
                     WinUpdate "Prepare"
-                        #WinUpdate "Start"
                       Start-Sleep 2
                     S1Agent
                         Write-Host "Restart when done."
-                        #Restart-Computer
                 }
                 NewDeviceOne
             } elseif ($SubFunction -eq "2") { #Post-Restart
@@ -271,7 +268,6 @@
                       Start-Sleep 2
                     S1Agent
                     Write-Host "Restart when done."
-                    #Restart-Computer
                 }
                 NewDeviceTwo
             }
