@@ -9,7 +9,7 @@
         $Architecture = Get-WmiObject -Class Win32_OperatingSystem | Select-Object OSArchitecture
 
     #Current Dir
-        $currentDirectory = Get-Location
+        $currentDirectory = $PSScriptRoot
 
 #Global Functions
     #Accepts file input
