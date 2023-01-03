@@ -47,6 +47,7 @@
                 function DCUOne {
                     #- Install DCU before running
                     $installerPath = "$currentDirectory\DCU.exe"
+                    Write-Host $installerPath
                     # Start the installer
                         Start-Process $installerPath -Wait
                             Write-Host "Finished Installing DCU."
