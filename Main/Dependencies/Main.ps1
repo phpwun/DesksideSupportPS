@@ -39,17 +39,27 @@
                 Start-Sleep 1
         }
     }
-
+    #Grabs an Excel File, Like AcceptFile but coded worse.
+    function ExcelGrab{
+        Import-Module ImportExcel
+        #$filety = 'CSV files (*.csv)|*.csv|Excel Files|*.xls;*.xlsx;*.xlsm'
+        $filety = 'Excel Files|*.xls;*.xlsx;*.xlsm'
+        $location = 'Desktop'
+        $File = AcceptFile $filety $location
+        #Assumes that Gerardo will keep making the username row on row 3
+        $UsernameRow = Import-Excel $File -WorksheetName Sheet1 -ImportColumns @(3)
+        return $UsernameRow
+    }
     #Installs / Initiates Dell Command Update
         function DellCommandUpdate($SubFunction, $Bypass = $false) {
             if ($SubFunction -eq "Prepare") {
             #Downloads and Installs Dell Command Update
                 function DCUOne {
                     #- Install DCU before running
-                        Copy-Item -Path "C:\Users\haitadmin\Downloads\DesksideSupportPS-main\Main\Dependencies\DCU.exe" -Destination "C:\temp"
-                            Write-Host "Attempting DCU Install."
-                                Start-Sleep 1
-                        & "C:\temp\DCU.exe"
+                    $installerPath = "$currentDirectory\DCU.exe"
+                    Write-Host $installerPath
+                    # Start the installer
+                        Start-Process $installerPath -Wait
                             Write-Host "Finished Installing DCU."
                                 Start-Sleep 1
                 }
@@ -173,25 +183,119 @@
     #Installs the Automate Agent
         function AutomateAgent{
             Write-Host "Attempting Automate Install."
-            Copy-Item -Path "C:\Users\haitadmin\Downloads\DesksideSupportPS-main\Main\Dependencies\Agent.msi" -Destination "C:\temp"
-                Start-Sleep 2
-            #Start-Process -Wait -FilePath "C:\temp\Agent.msi" -ArgumentList "/P" -PassThru
-            msiexec.exe /a "C:\temp\Agent.msi"  /passive
+            $installerPath = "$currentDirectory\Agent.msi"
+            # Start the installer
+                Start-Process $installerPath -Wait
                 Write-Host "Agent Installer Finished."
                     Start-Sleep 2
         }
 
     #Installs the SentinalOne Agent
         function S1Agent{
-            Copy-Item -Path "C:\Users\haitadmin\Downloads\DesksideSupportPS-main\Main\Dependencies\S1.exe" -Destination "C:\temp"
-            Copy-Item -Path "C:\Users\haitadmin\Downloads\DesksideSupportPS-main\Main\Dependencies\S1.bat" -Destination "C:\temp"
             Write-Host "Attempting S1 Install."
                 Start-Sleep 1
-            & cmd.exe /c C:\temp\S1.bat
+                    $installerPath = "$currentDirectory\S1.bat"
+                    & cmd.exe /c $installerPath
             #Start-Process -Wait -FilePath "C:\temp\S1.exe" -ArgumentList "/passive" " -PassThru
                 Write-Host "Finished Installing DCU."
                     Start-Sleep 1
         }
+
+    #Allows for the addition of AD users from an Excel input with a collum named Username
+    function AddUserstoADGroup($Group, $File, $Sheet){
+        Import-Module ActiveDirectory
+            $UsernameRow = ExcelGrab
+            #Numerates a list of users based on how many were inputted from the 3'd row of the excel document.
+            For ($i=0; $i -lt $UsernameRow.Length; $i++) {
+                    #Removes some crap formatting stuff outputted from Import-Excel
+                    $b = $UsernameRow[$i] -replace '[[\]{}@ ''"]'
+                    $c = $b.Split("=")
+                    $username = $c[1]
+                    # Add the user to the Active Directory group
+                        #Check if user is a member of the group
+                            $ADGroupObj = (([ADSISearcher] "(&(objectCategory=person)(objectClass=user)(SAMAccountName=$username))").FindOne().properties.memberof -match "CN=$Group,")
+
+                            if ($ADGroupObj -and $ADGroupObj.count -gt 0) {
+
+                                    Write-Host $username "is a member of" $Group
+
+                                } else {
+                                    #What a mess, good lord. I hated coding every second of this. It was a mess figuring any of it out
+                                    #Just a super round about way to identify the user and the group.
+                                    $GroupObj = (([ADSISearcher] "(&(objectCategory=group)(SAMAccountName=$Group))"))
+                                        $GroupPath = $GroupObj.FindOne().Properties['distinguishedName'][0]
+                                        $GroupString = $GroupPath.ToString()
+                                    $ADUserObj = ([ADSISearcher] "(&(objectCategory=person)(objectClass=user)(SAMAccountName=$username))")
+                                        $UserPath = $ADUserObj.FindOne().Properties['distinguishedName'][0]
+                                        $UserString = $UserPath.ToString()
+                                    $GroupMAIN = [ADSI]"LDAP://$GroupString"
+                                    $UserMAIN = [ADSI]"LDAP://$UserString"
+                                    #Adds the user to the group
+                                        $GroupMAIN.Add($UserMAIN.Path)
+                                    #$UserM.memberof
+                            }
+            }
+    }
+
+    #Allows for the addition of an O365 License to an AD useraccount
+        function O365LicenseUser($UserName, $License){
+
+            Import-Module MSOnline
+
+            # Connect to the Microsoft Online Services
+                Connect-MsolService
+
+            # Set the license plans that you want to assign to the users
+                $LicensePlans = @("O365_BUSINESS_ESSENTIALS", "O365_BUSINESS_PREMIUM")
+
+            # Get the list of user accounts from Active Directory
+                $UserAccounts = Get-ADUser -Filter $UserName
+
+            # Loop through the user accounts and assign the license plans
+                foreach ($User in $UserAccounts)
+                {
+                    # Check if the user has an Office 365 license already assigned
+                    $Licenses = (Get-MsolUser -UserPrincipalName $User.UserPrincipalName).Licenses
+                    if ($null -eq $Licenses)
+                        {
+                            # Assign the license plans to the user
+                                Set-MsolUserLicense -UserPrincipalName $User.UserPrincipalName -AddLicenses $LicensePlans
+                                Write-Host "Assigned license to $($User.UserPrincipalName)"
+                        }
+                    else
+                        {
+                            Write-Host "$($User.UserPrincipalName) already has a license assigned."
+                        }
+                }
+        }
+
+
+    #Allows for the addition of an O365 License to an AD useraccount
+    function O365LicenseUserADSI($UserName, $License){
+        # Set the license options
+            $licenseOptions = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicense
+            $licenseOptions.SkuId = $License#"<<SKU ID>>"
+            $licenseOptions.DisabledPlans = "<<DISABLED PLANS>>"
+
+        # Set the search criteria
+            $search = New-Object System.DirectoryServices.DirectorySearcher
+            $search.Filter = "(&(objectCategory=person)(objectClass=user)(samAccountName=$UserName))"
+
+        # Set the properties to retrieve
+            $search.PropertiesToLoad.Add("objectGUID")
+
+        # Search for the user accounts
+            $results = $search.FindAll()
+
+        # Assign the licenses to the user accounts
+        foreach ($result in $results) {
+            $objectGUID = [System.Guid]$result.Properties.Item("objectGUID")
+            $user = [ADSI]"LDAP://<GUID=$objectGUID>"
+            $userMAIN = [ADSI]"LDAP://$($user.DistinguishedName)"
+            Set-MsolUserLicense -UserPrincipalName $userMAIN.sAMAccountName -LicenseOptions $licenseOptions
+        }
+    }
+
 
     #Core Functions
         #Sweeps through all Windows Users and Clear's Non-Esentiall Ones
@@ -257,13 +361,10 @@
             if ($SubFunction -eq "1") {
                 function NewDeviceOne {
                     DellCommandUpdate "Prepare"
-                        #DellCommandUpdate "Start"
                     WinUpdate "Prepare"
-                        #WinUpdate "Start"
                       Start-Sleep 2
                     S1Agent
                         Write-Host "Restart when done."
-                        #Restart-Computer
                 }
                 NewDeviceOne
             } elseif ($SubFunction -eq "2") { #Post-Restart
@@ -273,7 +374,6 @@
                       Start-Sleep 2
                     S1Agent
                     Write-Host "Restart when done."
-                    #Restart-Computer
                 }
                 NewDeviceTwo
             }
@@ -327,6 +427,11 @@
                 "C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"
             ApplicationFinders "SubTwo" $true
         }
+
+        function MondayPreface {
+            AddUserstoADGroup "VPN Client Access"
+        }
+
 #Main Menu Loop
     function Show-Menu {
         Write-Host "
@@ -356,6 +461,10 @@
             Checklist
                 (Run after a user has logged in and finished setting things up)
 
+        6:
+            Monday Preface
+                (Add Monday's users to VPN in AD, and Assign a license in O365)
+
         E:
         Exit Script."
     }
@@ -383,6 +492,9 @@
                 }
             '5' {
                     CheckListHA
+                }
+            '6' {
+                    MondayPreface
                 }
             'e' {
                     return
