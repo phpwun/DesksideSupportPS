@@ -39,17 +39,6 @@
                 Start-Sleep 1
         }
     }
-    #Grabs an Excel File, Like AcceptFile but coded worse.
-    function ExcelGrab{
-        Import-Module ImportExcel
-        #$filety = 'CSV files (*.csv)|*.csv|Excel Files|*.xls;*.xlsx;*.xlsm'
-        $filety = 'Excel Files|*.xls;*.xlsx;*.xlsm'
-        $location = 'Desktop'
-        $File = AcceptFile $filety $location
-        #Assumes that Gerardo will keep making the username row on row 3
-        $UsernameRow = Import-Excel $File -WorksheetName Sheet1 -ImportColumns @(3)
-        return $UsernameRow
-    }
     #Installs / Initiates Dell Command Update
         function DellCommandUpdate($SubFunction, $Bypass = $false) {
             if ($SubFunction -eq "Prepare") {
@@ -202,100 +191,45 @@
         }
 
     #Allows for the addition of AD users from an Excel input with a collum named Username
-    function AddUserstoADGroup($Group, $File, $Sheet){
-        Import-Module ActiveDirectory
-            $UsernameRow = ExcelGrab
-            #Numerates a list of users based on how many were inputted from the 3'd row of the excel document.
+    function ADUserMove($Group, $Sheet, $Row) {
+        #Defines parameters to give to the acceptfile function to grab an excel file
+            $ExcelFile = AcceptFile 'Excel Files|*.xls;*.xlsx;*.xlsm' 'Desktop'
+        #Uses Import-Excel to define UsernameRow as the entirety of a specified row within the grabbed excel sheet
+            $UsernameRow = Import-Excel $ExcelFile -WorksheetName $Sheet -ImportColumns @($Row)
+        #Numerates a list of users based on how many were inputted from the 3'd row of the excel document.
             For ($i=0; $i -lt $UsernameRow.Length; $i++) {
-                    #Removes some crap formatting stuff outputted from Import-Excel
+                #Removes some crap formatting stuff outputted from Import-Excel Function (Ex: {@Username=})
                     $b = $UsernameRow[$i] -replace '[[\]{}@ ''"]'
                     $c = $b.Split("=")
                     $username = $c[1]
-                    # Add the user to the Active Directory group
-                        #Check if user is a member of the group
-                            $ADGroupObj = (([ADSISearcher] "(&(objectCategory=person)(objectClass=user)(SAMAccountName=$username))").FindOne().properties.memberof -match "CN=$Group,")
+                #Check if user is a member of the group
+                    $ADGroupObj = (([ADSISearcher] "(&(objectCategory=person)(objectClass=user)(SAMAccountName=$username))").FindOne().properties.memberof -match "CN=$Group,")
 
-                            if ($ADGroupObj -and $ADGroupObj.count -gt 0) {
+                    #If they are a member of the group then cool, skip them
+                        if ($ADGroupObj -and $ADGroupObj.count -gt 0) {
+                                Write-Host $username "is a member of" $Group
+                        # The script has identified them as not having the group yet
+                            } else {
+                            # These Tree below Identify's the Group via its name defined in the string,
+                                $GroupObj = (([ADSISearcher] "(&(objectCategory=group)(SAMAccountName=$Group))"))
+                                # ask ADSI (Active Directory) to search for it via SAMAccountName
+                                    $GroupPath = $GroupObj.FindOne().Properties['distinguishedName'][0]
+                                    # it uses that identification to determine the object's DN in AD
+                                            $GroupString = $GroupPath.ToString()
+                                        # it then converts the DN (Full Path in AD)
+                                                $GroupMAIN = [ADSI]"LDAP://$GroupString"
 
-                                    Write-Host $username "is a member of" $Group
-
-                                } else {
-                                    #What a mess, good lord. I hated coding every second of this. It was a mess figuring any of it out
-                                    #Just a super round about way to identify the user and the group.
-                                    $GroupObj = (([ADSISearcher] "(&(objectCategory=group)(SAMAccountName=$Group))"))
-                                        $GroupPath = $GroupObj.FindOne().Properties['distinguishedName'][0]
-                                        $GroupString = $GroupPath.ToString()
+                                #(Likewise below, same proccess as above but for the user)
                                     $ADUserObj = ([ADSISearcher] "(&(objectCategory=person)(objectClass=user)(SAMAccountName=$username))")
                                         $UserPath = $ADUserObj.FindOne().Properties['distinguishedName'][0]
-                                        $UserString = $UserPath.ToString()
-                                    $GroupMAIN = [ADSI]"LDAP://$GroupString"
-                                    $UserMAIN = [ADSI]"LDAP://$UserString"
-                                    #Adds the user to the group
-                                        $GroupMAIN.Add($UserMAIN.Path)
-                                    #$UserM.memberof
-                            }
+                                            $UserString = $UserPath.ToString()
+                                                $UserMAIN = [ADSI]"LDAP://$UserString"
+
+                                #Adds the user to the group
+                                    $GroupMAIN.Add($UserMAIN.Path)
+                }
             }
     }
-
-    #Allows for the addition of an O365 License to an AD useraccount
-        function O365LicenseUser($UserName, $License){
-
-            Import-Module MSOnline
-
-            # Connect to the Microsoft Online Services
-                Connect-MsolService
-
-            # Set the license plans that you want to assign to the users
-                $LicensePlans = @("O365_BUSINESS_ESSENTIALS", "O365_BUSINESS_PREMIUM")
-
-            # Get the list of user accounts from Active Directory
-                $UserAccounts = Get-ADUser -Filter $UserName
-
-            # Loop through the user accounts and assign the license plans
-                foreach ($User in $UserAccounts)
-                {
-                    # Check if the user has an Office 365 license already assigned
-                    $Licenses = (Get-MsolUser -UserPrincipalName $User.UserPrincipalName).Licenses
-                    if ($null -eq $Licenses)
-                        {
-                            # Assign the license plans to the user
-                                Set-MsolUserLicense -UserPrincipalName $User.UserPrincipalName -AddLicenses $LicensePlans
-                                Write-Host "Assigned license to $($User.UserPrincipalName)"
-                        }
-                    else
-                        {
-                            Write-Host "$($User.UserPrincipalName) already has a license assigned."
-                        }
-                }
-        }
-
-
-    #Allows for the addition of an O365 License to an AD useraccount
-    function O365LicenseUserADSI($UserName, $License){
-        # Set the license options
-            $licenseOptions = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicense
-            $licenseOptions.SkuId = $License#"<<SKU ID>>"
-            $licenseOptions.DisabledPlans = "<<DISABLED PLANS>>"
-
-        # Set the search criteria
-            $search = New-Object System.DirectoryServices.DirectorySearcher
-            $search.Filter = "(&(objectCategory=person)(objectClass=user)(samAccountName=$UserName))"
-
-        # Set the properties to retrieve
-            $search.PropertiesToLoad.Add("objectGUID")
-
-        # Search for the user accounts
-            $results = $search.FindAll()
-
-        # Assign the licenses to the user accounts
-        foreach ($result in $results) {
-            $objectGUID = [System.Guid]$result.Properties.Item("objectGUID")
-            $user = [ADSI]"LDAP://<GUID=$objectGUID>"
-            $userMAIN = [ADSI]"LDAP://$($user.DistinguishedName)"
-            Set-MsolUserLicense -UserPrincipalName $userMAIN.sAMAccountName -LicenseOptions $licenseOptions
-        }
-    }
-
 
     #Core Functions
         #Sweeps through all Windows Users and Clear's Non-Esentiall Ones
@@ -429,7 +363,7 @@
         }
 
         function MondayPreface {
-            AddUserstoADGroup "VPN Client Access"
+            AddUserstoADGroup "VPN Client Access" "Sheet1" "3"
         }
 
 #Main Menu Loop
