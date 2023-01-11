@@ -281,12 +281,26 @@
         function ADOUChangeMain{
             $Where = Read-Host "Please Enter OU Path: (HA, HAI, HH, HHCS, HHO)"
             $What = Read-Host "Please Enter Device List Type: (Laptops, Desktops)"
-            $filety = 'Comma Seperated Values (*.csv)|*.csv'; $location = 'Desktop'; $File = AcceptFile $filety $location
-            $laptops = Get-Content $File
-                    foreach ($laptop in $laptops) {
-                        $obj = Get-ADComputer $laptop
-                        Get-ADComputer $obj | Move-ADObject -TargetPath "OU=$What,OU=$Where,OU=Heartland Alliance,OU=Systems,DC=cho,DC=ha,DC=local" -Verbose
-                    }
+            $How = Read-Host "Excel (E) or Plaintext (T)"
+            $filety = 'Comma Seperated Values (*.csv)|*.csv'
+            $location = 'Desktop'
+                        if ($How -eq "E") {
+                            $File = AcceptFile $filety $location
+                                $Devices = Get-Content $File
+                                    foreach ($laptop in $Devices) {
+                                        $obj = Get-ADComputer $laptop
+                                        Get-ADComputer $obj | Move-ADObject -TargetPath "OU=$What,OU=$Where,OU=Heartland Alliance,OU=Systems,DC=cho,DC=ha,DC=local" -Verbose
+                                    }
+                        } elseif ($How -eq "T") {
+                            $Devices = Read-Host "Input Device Service Tags"
+                                $Devices = $Devices.split(",")
+                                    foreach ($laptop in $Devices) {
+                                        $obj = Get-ADComputer $laptop
+                                        Get-ADComputer $obj | Move-ADObject -TargetPath "OU=$What,OU=$Where,OU=Heartland Alliance,OU=Systems,DC=cho,DC=ha,DC=local" -Verbose
+                                    }
+                        } else {
+                            Write-Host "Wrong Input."
+                        }
         }
 
     #Sets up new devices out of box
@@ -402,10 +416,6 @@
         E:
         Exit Script."
     }
-
-    #WinUpdateOne
-    #Start-Sleep 2
-    #DomainAddition
 
     do {
         Show-Menu
