@@ -377,7 +377,7 @@
         }
 
         function MondayPreface {
-            AddUserstoADGroup "VPN Client Access" "Sheet1" "3"
+            ADUserMove "VPN Client Access" "Sheet1" "3"
         }
 
 #Main Menu Loop
