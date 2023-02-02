@@ -190,6 +190,16 @@
                     Start-Sleep 1
         }
 
+    #Installs the SentinalOne Agent
+        function AdobePRO{
+            Write-Host "Attempting Adobe PRO."
+                Start-Sleep 1
+                    $installerPath = "$currentDirectory\Adobe.bat"
+                    & cmd.exe /c $installerPath
+                Write-Host "Finished Installing Adobe PRO."
+                    Start-Sleep 1
+        }
+
     #Allows for the addition of AD users from an Excel input with a collum named Username
     function ADUserMove($Group, $Sheet, $Row) {
         #Defines parameters to give to the acceptfile function to grab an excel file
@@ -413,7 +423,11 @@
             Monday Preface
                 (Add Monday's users to VPN in AD, and Assign a license in O365)
 
-        E:
+        7:
+            Adobe Pro Installer
+                (Installs Adobe Acrobat 2017)
+
+                E:
         Exit Script."
     }
 
@@ -439,6 +453,9 @@
                 }
             '6' {
                     MondayPreface
+                }
+            '7' {
+                    AdobePRO
                 }
             'e' {
                     return
