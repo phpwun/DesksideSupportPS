@@ -45,10 +45,12 @@
             #Downloads and Installs Dell Command Update
                 function DCUOne {
                     #- Install DCU before running
-                    $installerPath = "$currentDirectory\DCU.exe"
+                    #$installerPath = "$currentDirectory\DCU.exe"
+                    $installerPath = "$currentDirectory\DCU.bat"
                     Write-Host $installerPath
                     # Start the installer
-                        Start-Process $installerPath -Wait
+                        & cmd.exe /c $installerPath
+                        #Start-Process $installerPath -Wait -ArgumentList '/s'
                             Write-Host "Finished Installing DCU."
                                 Start-Sleep 1
                 }
@@ -185,7 +187,6 @@
                 Start-Sleep 1
                     $installerPath = "$currentDirectory\S1.bat"
                     & cmd.exe /c $installerPath
-            #Start-Process -Wait -FilePath "C:\temp\S1.exe" -ArgumentList "/passive" " -PassThru
                 Write-Host "Finished Installing DCU."
                     Start-Sleep 1
         }
@@ -202,43 +203,45 @@
 
     #Allows for the addition of AD users from an Excel input with a collum named Username
     function ADUserMove($Group, $Sheet, $Row) {
-        #Defines parameters to give to the acceptfile function to grab an excel file
-            $ExcelFile = AcceptFile 'Excel Files|*.xls;*.xlsx;*.xlsm' 'Desktop'
-        #Uses Import-Excel to define UsernameRow as the entirety of a specified row within the grabbed excel sheet
-            $UsernameRow = Import-Excel $ExcelFile -WorksheetName $Sheet -ImportColumns @($Row)
-        #Numerates a list of users based on how many were inputted from the 3'd row of the excel document.
-            For ($i=0; $i -lt $UsernameRow.Length; $i++) {
-                #Removes some crap formatting stuff outputted from Import-Excel Function (Ex: {@Username=})
-                    $b = $UsernameRow[$i] -replace '[[\]{}@ ''"]'
-                    $c = $b.Split("=")
-                    $username = $c[1]
-                #Check if user is a member of the group
-                    $ADGroupObj = (([ADSISearcher] "(&(objectCategory=person)(objectClass=user)(SAMAccountName=$username))").FindOne().properties.memberof -match "CN=$Group,")
+        # Defines parameters to give to the acceptfile function to grab an excel file
+        $ExcelFile = AcceptFile 'Excel Files|*.xls;*.xlsx;*.xlsm' 'Desktop'
 
-                    #If they are a member of the group then cool, skip them
-                        if ($ADGroupObj -and $ADGroupObj.count -gt 0) {
-                                Write-Host $username "is a member of" $Group
-                        # The script has identified them as not having the group yet
-                            } else {
-                            # These Tree below Identify's the Group via its name defined in the string,
-                                $GroupObj = (([ADSISearcher] "(&(objectCategory=group)(SAMAccountName=$Group))"))
-                                # ask ADSI (Active Directory) to search for it via SAMAccountName
-                                    $GroupPath = $GroupObj.FindOne().Properties['distinguishedName'][0]
-                                    # it uses that identification to determine the object's DN in AD
-                                            $GroupString = $GroupPath.ToString()
-                                        # it then converts the DN (Full Path in AD)
-                                                $GroupMAIN = [ADSI]"LDAP://$GroupString"
+        # Uses Import-Excel to define UsernameRow as the entirety of a specified row within the grabbed excel sheet
+        $UsernameRow = Import-Excel $ExcelFile -WorksheetName $Sheet -ImportColumns @($Row) |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 
-                                #(Likewise below, same proccess as above but for the user)
-                                    $ADUserObj = ([ADSISearcher] "(&(objectCategory=person)(objectClass=user)(SAMAccountName=$username))")
-                                        $UserPath = $ADUserObj.FindOne().Properties['distinguishedName'][0]
-                                            $UserString = $UserPath.ToString()
-                                                $UserMAIN = [ADSI]"LDAP://$UserString"
+        # Initializes the ADSISearcher objects for the group and users
+        $GroupSearcher = [ADSISearcher] "(&(objectCategory=group)(SAMAccountName=$Group))"
+        $UserSearcher = [ADSISearcher] "(&(objectCategory=person)(objectClass=user))"
 
-                                #Adds the user to the group
-                                    $GroupMAIN.Add($UserMAIN.Path)
+        # Searches for the group
+        $GroupPath = $GroupSearcher.FindOne().Properties['distinguishedName'][0]
+        $GroupMAIN = [ADSI]"LDAP://$GroupPath"
+
+        # Iterates through the user list
+        foreach ($UserEntry in $UsernameRow) {
+            $b = $UserEntry -replace '[[\]{}@ ''"]'
+            $c = $b.Split("=")
+            $username = $c[1]
+
+            # Check if $username is not empty before proceeding
+            if (![string]::IsNullOrWhiteSpace($username)) {
+                # Searches for the user
+                $UserSearcher.Filter = "(&(objectCategory=person)(objectClass=user)(SAMAccountName=$username))"
+                $UserPath = $UserSearcher.FindOne().Properties['distinguishedName'][0]
+                $UserMAIN = [ADSI]"LDAP://$UserPath"
+
+                # Checks if the user is a member of the group
+                $ADGroupObj = $UserSearcher.FindOne().properties.memberof -match "CN=$Group,"
+
+                if ($ADGroupObj -and $ADGroupObj.count -gt 0) {
+                    Write-Host $username "is a member of" $Group
+                } else {
+                    # Adds the user to the group
+                    $GroupMAIN.Add($UserMAIN.Path)
                 }
             }
+        }
     }
 
     #Core Functions
@@ -331,6 +334,8 @@
                     DellCommandUpdate "Start"
                       Start-Sleep 2
                     S1Agent
+                    Write-Host "Check list: "
+                        CheckListHA
                     Write-Host "Restart when done."
                 }
                 NewDeviceTwo
